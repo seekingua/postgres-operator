@@ -142,6 +142,14 @@ These parameters are grouped directly under  the `spec` key in the manifest.
   database, like a flyway user running a migration on Pod start. See more
   details in the [administrator docs](https://github.com/zalando/postgres-operator/blob/master/docs/administrator.md#password-replacement-without-extra-users).
 
+* **usersIgnoringSecretRotation**
+  if you have secret rotation enabled globally you can define a list of
+  of users that should opt out from it, for example if you store credentials
+  outside of K8s, too, and corresponding deployments cannot dynamically
+  reference secrets. Note, you can also opt out from the rotation by removing
+  users from the manifest's `users` section. The operator will not drop them
+  from the database. Optional.
+
 * **databases**
   a map of database names to database owners for the databases that should be
   created by the operator. The owner users should already exist on the cluster
@@ -215,10 +223,17 @@ These parameters are grouped directly under  the `spec` key in the manifest.
   Determines if the logical backup of this cluster should be taken and uploaded
   to S3. Default: false. Optional.
 
+* **logicalBackupRetention**
+  You can set a retention time for the logical backup cron job to remove old backup
+  files after a new backup has been uploaded. Example values are "3 days", "2 weeks", or
+  "1 month". It takes precedence over the global `logical_backup_s3_retention_time`
+  configuration. Currently only supported for AWS. Optional.
+
 * **logicalBackupSchedule**
   Schedule for the logical backup K8s cron job. Please take
   [the reference schedule format](https://kubernetes.io/docs/tasks/job/automated-tasks-with-cron-jobs/#schedule)
-  into account. Optional. Default is: "30 00 \* \* \*"
+  into account. It takes precedence over the global `logical_backup_schedule`
+  configuration. Optional.
 
 * **additionalVolumes**
   List of additional volumes to mount in each container of the statefulset pod.
@@ -359,6 +374,14 @@ CPU and memory requests for the Postgres container.
   memory requests for the Postgres container. Optional, overrides the
   `default_memory_request` operator configuration parameter.
 
+* **hugepages-2Mi**
+  hugepages-2Mi requests for the sidecar container.
+  Optional, defaults to not set.
+
+* **hugepages-1Gi**
+  1Gi hugepages requests for the sidecar container.
+  Optional, defaults to not set.
+
 ### Limits
 
 CPU and memory limits for the Postgres container.
@@ -370,6 +393,14 @@ CPU and memory limits for the Postgres container.
 * **memory**
   memory limits for the Postgres container. Optional, overrides the
   `default_memory_limits` operator configuration parameter.
+
+* **hugepages-2Mi**
+  hugepages-2Mi requests for the sidecar container.
+  Optional, defaults to not set.
+
+* **hugepages-1Gi**
+  1Gi hugepages requests for the sidecar container.
+  Optional, defaults to not set.
 
 ## Parameters defining how to clone the cluster from another one
 
@@ -500,6 +531,14 @@ CPU and memory requests for the sidecar container.
   memory requests for the sidecar container. Optional, overrides the
   `default_memory_request` operator configuration parameter. Optional.
 
+* **hugepages-2Mi**
+  hugepages-2Mi requests for the sidecar container.
+  Optional, defaults to not set.
+
+* **hugepages-1Gi**
+  1Gi hugepages requests for the sidecar container.
+  Optional, defaults to not set.
+
 ### Limits
 
 CPU and memory limits for the sidecar container.
@@ -511,6 +550,14 @@ CPU and memory limits for the sidecar container.
 * **memory**
   memory limits for the sidecar container. Optional, overrides the
   `default_memory_limits` operator configuration parameter. Optional.
+
+* **hugepages-2Mi**
+  hugepages-2Mi requests for the sidecar container.
+  Optional, defaults to not set.
+
+* **hugepages-1Gi**
+  1Gi hugepages requests for the sidecar container.
+  Optional, defaults to not set.
 
 ## Connection pooler
 
@@ -581,7 +628,7 @@ the global configuration before adding the `tls` section'.
 ## Change data capture streams
 
 This sections enables change data capture (CDC) streams via Postgres' 
-[logical decoding](https://www.postgresql.org/docs/15/logicaldecoding.html)
+[logical decoding](https://www.postgresql.org/docs/16/logicaldecoding.html)
 feature and `pgoutput` plugin. While the Postgres operator takes responsibility
 for providing the setup to publish change events, it relies on external tools
 to consume them. At Zalando, we are using a workflow based on
@@ -613,7 +660,7 @@ can have the following properties:
   and `payloadColumn`). The CDC operator is following the [outbox pattern](https://debezium.io/blog/2019/02/19/reliable-microservices-data-exchange-with-the-outbox-pattern/).
   The application is responsible for putting events into a (JSON/B or VARCHAR)
   payload column of the outbox table in the structure of the specified target
-  event type. The operator will create a [PUBLICATION](https://www.postgresql.org/docs/15/logical-replication-publication.html)
+  event type. The operator will create a [PUBLICATION](https://www.postgresql.org/docs/16/logical-replication-publication.html)
   in Postgres for all tables specified for one `database` and `applicationId`.
   The CDC operator will consume from it shortly after transactions are
   committed to the outbox table. The `idColumn` will be used in telemetry for
